@@ -1,10 +1,13 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 import random
+import os
 
-# Bot token
-TOKEN = "YOUR_BOT_TOKEN"
-
+# Get the bot token from environment variables
+TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("No BOT_TOKEN found. Please set it as an environment variable.")
+    
 def start(update, context):
     """Send a welcome message and explain the bot's functionality."""
     welcome_text = (
