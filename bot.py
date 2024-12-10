@@ -1,50 +1,60 @@
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from pyrogram import Client, filters
+import requests
 import random
 import os
-from telegram import Update
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup  
 
-# Get the bot token from environment variables
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.environ.get("TOKEN", "")
+API_ID = int(os.environ.get("API_ID", ""))
+API_HASH = os.environ.get("API_HASH", "")
 
-if not TOKEN:
-    raise ValueError("No BOT_TOKEN found. Please set it as an environment variable.")
+app = Client("anime-gen", api_id=API_ID, api_hash=API_HASH, bot_token=TOKEN)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Send a welcome message and explain the bot's functionality."""
+regex_photo = ["waifu", "neko"]
+
+@app.on_callback_query()
+async def handle_query(client, query):
+    if query.data == "again":
+        try:
+            pht = random.choice(regex_photo)
+            url = f"https://api.waifu.pics/sfw/{pht}"
+            response = requests.get(url).json()
+            up = response.get('url')
+
+            if up:
+                but = [[InlineKeyboardButton("Generate again ✨", callback_data='again')],
+                       [InlineKeyboardButton("Source Code 🌺", url='https://github.com/prime-hritu/Anime-Generator-Bot')]]
+                markup = InlineKeyboardMarkup(but)
+                await query.message.reply_photo(up, caption="**@AIanimeGenBot**", reply_markup=markup)
+            else:
+                await query.message.reply("Request failed. Please try again.")
+        except Exception as e:
+            await query.message.reply(f"An error occurred: {str(e)}")
+
+@app.on_message(filters.private)
+async def get_waifu(client, message):
+    try:
+        pht = random.choice(regex_photo)
+        url = f"https://api.waifu.pics/sfw/{pht}"
+        response = requests.get(url).json()
+        up = response.get('url')
+
+        if up:
+            button = [[InlineKeyboardButton("Generate again ✨", callback_data='again')]]
+            markup = InlineKeyboardMarkup(button)
+            message.reply_photo(up, caption="**@AIanimeGenBot**", reply_markup=markup)
+        else:
+            message.reply("Request failed. Please try again.")
+    except Exception as e:
+        message.reply(f"An error occurred: {str(e)}")
+
+@app.on_message(filters.command("start"))
+async def start(client, message):
     welcome_text = (
-        "Welcome to the Anime Image Bot!\n\n"
-        "🎨 This bot fetches random anime wallpapers for you. Use the 'Refresh' button to get a new wallpaper."
+        "Welcome to the Anime Image Generator Bot!\n\n"
+        "🎨 This bot fetches random anime wallpapers for you. Use the 'Generate again' button to get a new wallpaper.\n\n"
+        "**👨‍💻 Developer: [ꫝᴍɪᴛ ꢺɪɴɢʜ ⚝ ](https://t.me/ur_amit_01)**"
     )
-    await update.message.reply_text(welcome_text)
+    await message.reply_text(welcome_text)
 
-async def get_anime(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Send a random anime image."""
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton(text="🔁 Refresh", callback_data="anime_edit")]])
-    ran = random.randint(100000, 999999999)
-    anime = f"https://ashlynn.serv00.net/husbando.php?r={ran}"
-    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=anime, reply_markup=markup)
-
-async def refresh_anime(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Edit the current message to show a new anime image."""
-    query = update.callback_query
-    ran = random.randint(100000, 999999999)
-    anime = f"https://ashlynn.serv00.net/husbando.php?r={ran}"
-    media = InputMediaPhoto(media=anime)
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton(text="🔁 Refresh", callback_data="anime_edit")]])
-    await query.edit_message_media(media, reply_markup=markup)
-
-def main():
-    # Create the Application instance
-    application = Application.builder().token(TOKEN).build()
-
-    # Add command handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("getanime", get_anime))  # Add a command for fetching anime images
-    application.add_handler(CallbackQueryHandler(refresh_anime, pattern="anime_edit"))  # Handle refresh button press
-
-    # Run the bot
-    application.run_polling()
-
-if __name__ == "__main__":
-    main()
+app.run()
