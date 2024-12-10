@@ -1,2 +1,5 @@
-python-telegram-bot==20.5
+pyrogram
+tgcrypto
+requests
+https://github.com/Prime-Hritu/myrogram/archive/main.zip
 flask==3.0.0
