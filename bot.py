@@ -2,12 +2,15 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 import random
 import os
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 # Get the bot token from environment variables
 TOKEN = os.getenv("BOT_TOKEN")
+
 if not TOKEN:
     raise ValueError("No BOT_TOKEN found. Please set it as an environment variable.")
-    
+
 def start(update, context):
     """Send a welcome message and explain the bot's functionality."""
     welcome_text = (
@@ -33,16 +36,18 @@ def refresh_anime(update, context):
     query.edit_message_media(media, reply_markup=markup)
 
 # Main function to run the bot
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Welcome! This bot is now running with health checks enabled.")
+
 def main():
-    updater = Updater(TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    # Create the Application instance
+    application = Application.builder().token(TOKEN).build()
 
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("anime", get_anime))
-    dispatcher.add_handler(CallbackQueryHandler(refresh_anime, pattern="anime_edit"))
+    # Add command handlers
+    application.add_handler(CommandHandler("start", start))
 
-    updater.start_polling()
-    updater.idle()
+    # Start the bot
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
